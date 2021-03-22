@@ -4,9 +4,7 @@
 Describe your game here.
 
 ### Group members:
-- member 1
-- member 2
-- etc...
+- Jayson Lai
 
 
 ---
