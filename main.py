@@ -1,5 +1,5 @@
 '''
-mimic of legend of the prarie king
+mimic of legend of the prairie king
 
 currently working on:
 enemy spawn and death
