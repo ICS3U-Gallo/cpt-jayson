@@ -2,6 +2,7 @@
 
 ### Game Title
 Describe your game here.
+Arcade game
 
 ### Group members:
 - Jayson Lai
