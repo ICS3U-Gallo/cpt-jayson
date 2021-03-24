@@ -1,15 +1,16 @@
 '''
-mimic of legend of the prairie king
+todo:
 
-currently working on:
-enemy spawn and death
-need to make list of enemies
+power ups
+graphics
+menu screens
+timer and score
 
-alot more other stuff
 '''
 
 import pygame
 import math
+import random
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -29,14 +30,35 @@ def const_slope(x1, y1, x2, y2, velocity):
     ratio = (x + y) / velocity
     return [x/ratio, y/ratio]
 
+def random_spawn(radius, size):
+    x = 0
+    y = 0
+    counter = random.randint(0, 1)
+    if counter == 0:
+        x = random.randint(-radius, size[0] + radius)
+        counter = random.randint(0, 1)
+        if counter == 0:
+            y = -radius
+        else:
+            y = radius + size[1]
+    else:
+        y = random.randint(-radius, size[1] + radius)
+        counter = random.randint(0, 1)
+        if counter == 0:
+            x = -radius
+        else:
+            x = radius + size[0]
+
+    return [x, y]
+
+
 
 class Enemy:
-    def __init__(self, hp, velocity, damage, x, y, radius):
+    def __init__(self, hp, velocity, x, y, radius):
         self.hp = hp
         self.velocity = velocity
         self.x = x
         self.y = y
-        self.damage = damage
         self.alive = True
         self.radius = radius
 
@@ -87,7 +109,7 @@ def main():
     velocity = 1.2
     user_x = 350
     user_y = 250
-
+    user_radius = 10
 
     attack = 1
     piercing = False
@@ -95,11 +117,15 @@ def main():
     bullet_radius = 1
     bullet_speed = 10
 
-    #chomper = Enemy(1, 2, 1, 0, 0)
-    grub = Enemy(3, 1, 1, 0, 0, 10)
-    #rigidy_digidy = Enemy(10, 0.5, 3, 0, 0)
-    enemies = []
+    enemies_killed = 0
 
+    enemies = []
+    big_enemy_r = 50
+    medium_enemy_r = 20
+    small_enemy_r = 10
+
+    score = 0
+    time_passed = 0
 
     done = False
     pygame.mouse.set_visible(False)
@@ -111,6 +137,8 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
+
+            # shooting
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_x, mouse_y = event.pos
                 slope = const_slope(mouse_x, mouse_y, user_x, user_y, bullet_speed)
@@ -136,7 +164,9 @@ def main():
             user_y += velocity
 
 
-        # bullet movements
+        # bullet update
+
+        # bullet movement
         for bullet in bullets:
             if bullet.left:
                 bullet.x -= bullet.slope[0]
@@ -146,25 +176,58 @@ def main():
                 bullet.y += bullet.slope[1]
             elif not bullet.up:
                 bullet.y -= bullet.slope[1]
-            dist = dist_2_points(bullet.x, bullet.y, grub.x, grub.y)
-            if detect_collision(dist, grub.radius, grub.radius):
-                grub.on_hit(attack)
-                bullets.remove(bullet)   
-                if grub.alive == False:
-                    print("dead")
+            
+        # collision detection
+        for bullet in bullets:
+            for enemy in enemies:
+                dist = dist_2_points(bullet.x, bullet.y, enemy.x, enemy.y)
+                if detect_collision(dist, bullet.radius, enemy.radius):
+                    enemy.on_hit(attack)
+                    try:
+                        bullets.remove(bullet)   
+                    except ValueError:
+                        pass
+                    if not enemy.alive:
+                        enemies.remove(enemy)
+                        enemies_killed += 1
+                
+
 
         
 
+        # spawning enemy 
 
-        
+        if frames_passed % 300 == 0:
+            enemy_x, enemy_y = random_spawn(big_enemy_r, size)
+            big_enemy = Enemy(10, 0.5, enemy_x, enemy_y, big_enemy_r)
+            enemies.append(big_enemy)
+        elif frames_passed % 180 == 0:
+            enemy_x, enemy_y = random_spawn(medium_enemy_r, size)
+            medium_enemy = Enemy(3, 1, enemy_x, enemy_y, medium_enemy_r)
+            enemies.append(medium_enemy)
+        elif frames_passed % 60 == 0:
+            enemy_x, enemy_y = random_spawn(small_enemy_r, size) 
+            small_enemy = Enemy(1, 3, enemy_x, enemy_y, small_enemy_r)
+            enemies.append(small_enemy)
 
-        # enemy stuff
 
-        grub.towards_player(user_x, user_y)
 
-               
-        
-        
+        # moving enemies
+
+        if len(enemies) >= 1:
+            for enemy in enemies:
+                enemy.towards_player(user_x, user_y)
+            
+        # enemy collsion
+        for enemy in enemies:
+            dist = dist_2_points(user_x, user_y, enemy.x, enemy.y)
+            if detect_collision(dist, enemy.radius, user_radius):
+                alive = False
+
+
+        if not alive:
+            done = True
+
 
 
 
@@ -175,21 +238,27 @@ def main():
 
         for bullet in bullets:
             pygame.draw.circle(screen, RED, (bullet.x, bullet.y), bullet.radius)
-
-
-        pygame.draw.circle(screen, RED, (grub.x, grub.y), grub.radius)
         
+        
+        if len(enemies) >= 1:
+            for enemy in enemies:
+                pygame.draw.circle(screen, RED, (enemy.x, enemy.y), enemy.radius)
+        
+
         cursor_x, cursor_y = pygame.mouse.get_pos()
         pygame.draw.circle(screen, BLACK, (cursor_x, cursor_y), 2, 1)
 
         
-        pygame.draw.circle(screen, BLACK, (user_x, user_y), 10)
+        pygame.draw.circle(screen, BLACK, (user_x, user_y), user_radius)
         
+        frames_passed += 1
+        if frames_passed % 60 == 0:
+            time_passed += 1
 
         pygame.display.flip()
  
 
-        frames_passed += 1
+
 
         clock.tick(60)
 
