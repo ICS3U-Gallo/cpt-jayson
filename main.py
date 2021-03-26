@@ -3,9 +3,7 @@ todo:
 menus
 instruction 
 leaderboards
-
-click sound
-
+balancing
 
 bugs:
 sometimes crashes at beginning of game due to event.pos not working
@@ -27,12 +25,20 @@ GREY = (182, 185, 165)
 def mouse_in_box(rect, mouse_x, mouse_y):
     return (mouse_x > rect[0] and mouse_x < rect[0] + rect[2] and mouse_y > rect[1] and mouse_y < rect[1] + rect[3])
 
+
 size = [800, 600]
 screen = pygame.display.set_mode(size)
 
 pygame.init()
-pygame.display.set_caption("My Game")
+pygame.display.set_caption("Dungeon Survivor")
 
+click = pygame.mixer.Sound("assets/click.wav")
+click.set_volume(0.1)
+
+font = pygame.font.SysFont('Calibri', 14, True, False)
+menu_font = pygame.font.SysFont('Calibri', 52, True, False)
+title_font = pygame.font.SysFont('Times New Roman', 60, True, False)
+background = pygame.image.load('assets/background.png')
 
 def game():
    
@@ -144,18 +150,14 @@ def game():
     while True:
         frames_passed = 0
 
-        background = pygame.image.load('background.png')
-        speed_icon = pygame.image.load('icon1.png')
-        attack_icon = pygame.image.load('icon2.png')
-        fourway_icon = pygame.image.load('icon3.png')
-        mirror_icon = pygame.image.load('icon4.png')
-        hitsound = pygame.mixer.Sound("hitsound.wav")
-        hitsound2 = pygame.mixer.Sound("hitsound2.wav")
+        speed_icon = pygame.image.load('assets/icon1.png')
+        attack_icon = pygame.image.load('assets/icon2.png')
+        fourway_icon = pygame.image.load('assets/icon3.png')
+        mirror_icon = pygame.image.load('assets/icon4.png')
+        hitsound = pygame.mixer.Sound("assets/hitsound.wav")
+        hitsound2 = pygame.mixer.Sound("assets/hitsound2.wav")
         hitsound.set_volume(0.1)
         hitsound2.set_volume(0.1)
-
-        font = pygame.font.SysFont('Calibri', 14, True, False)
-        menu_font = pygame.font.SysFont('Calibri', 52, True, False)
 
         # player variables
         alive = True
@@ -227,9 +229,11 @@ def game():
                     if ending_screen == True:
                         mouse_x, mouse_y = event.pos
                         if mouse_in_box(rect1, mouse_x, mouse_y):
+                            click.play()
                             done = True
 
                         elif mouse_in_box(rect2, mouse_x, mouse_y):
+                            click.play()
                             return "menu"
 
                 elif event.type == pygame.MOUSEBUTTONUP:
@@ -367,8 +371,6 @@ def game():
                 if enemies_killed >= kills_needed_for_power_up:
                     power_up = True
                     kills_needed_for_power_up += 7
-                    print("enemies killed:" + str(enemies_killed))
-                    print(kills_needed_for_power_up)
 
                 if power_up == True:
                     index = random.randint(0, 3)
@@ -524,7 +526,16 @@ def game():
 def menu():
     rect1 = [200, 250, 400, 100]
     rect2 = [200, 400, 400, 100]
-    rect3 = [690, 10, 100, 100]
+    rect3 = [740, 10, 50, 50]
+
+    text_x = 180
+    text_y = 100
+
+    r = 255
+    g = 255
+    b = 255
+    offset = 1
+
     clock = pygame.time.Clock()
     done = False
     while not done:
@@ -535,15 +546,24 @@ def menu():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_x, mouse_y = event.pos
                 if mouse_in_box(rect1, mouse_x, mouse_y):
+                    click.play()
                     return "game"
                 elif mouse_in_box(rect2, mouse_x, mouse_y):
+                    click.play()
                     return "instruction"
                 elif mouse_in_box(rect3, mouse_x, mouse_y):
                     return "quit"
         # ALL EVENT PROCESSING SHOULD GO ABOVE THIS COMMENT
  
         # ALL GAME LOGIC SHOULD GO BELOW THIS COMMENT
- 
+        r -= offset
+        g -= offset
+        b -= offset
+        if r >= 128:
+            offset *= -1
+        if r <= 254:
+            offset *= -1
+
         # ALL GAME LOGIC SHOULD GO ABOVE THIS COMMENT
  
         # ALL CODE TO DRAW SHOULD GO BELOW THIS COMMENT
@@ -551,9 +571,26 @@ def menu():
         # First, clear the screen to white. Don't put other drawing commands
         # above this, or they will be erased with this command.
         screen.fill(BLACK)
+        screen.blit(background, [0,0])
+        s = pygame.Surface((800,600)) 
+        s.set_alpha(224)               
+        s.fill(BLACK)          
+        screen.blit(s, (0,0))   
+
+        text = title_font.render("Dungeon Survivor", True, (r, g, b))
+        screen.blit(text, [text_x, text_y])
+
         pygame.draw.rect(screen, GREY, rect1)
         pygame.draw.rect(screen, GREY, rect2)
         pygame.draw.rect(screen, GREY, rect3)
+
+        text = menu_font.render("Play", True, BLACK)
+        screen.blit(text, [rect1[0] + 145, rect1[1] + 35])
+        text = menu_font.render("Instructions", True, BLACK)
+        screen.blit(text, [rect2[0] + 80, rect2[1] + 35])
+
+        pygame.draw.line(screen, RED, (rect3[0] + 10 , rect3[1] + 40), (rect3[0] + 40, rect3[1] + 10), 10)   
+        pygame.draw.line(screen, RED, (rect3[0] + 40, rect3[1] + 40), (rect3[0] + 10 , rect3[1] + 10), 10)
         # ALL CODE TO DRAW SHOULD GO ABOVE THIS COMMENT
  
         # Go ahead and update the screen with what we've drawn.
@@ -573,9 +610,10 @@ def instruction():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_x, mouse_y = event.pos
                 if mouse_in_box(rect1, mouse_x, mouse_y):
+                    click.play()
                     return "menu"
                 elif mouse_in_box(rect2, mouse_x, mouse_y):
-                    pass
+                    click.play()
         # ALL EVENT PROCESSING SHOULD GO ABOVE THIS COMMENT
  
         # ALL GAME LOGIC SHOULD GO BELOW THIS COMMENT
@@ -587,8 +625,11 @@ def instruction():
         # First, clear the screen to white. Don't put other drawing commands
         # above this, or they will be erased with this command.
         screen.fill(BLACK)
-        pygame.draw.rect(screen, WHITE, rect1)
-        pygame.draw.rect(screen, WHITE, rect2)
+        screen.blit(background, [0,0])
+        s = pygame.Surface((800,600)) 
+        s.set_alpha(224)               
+        s.fill(BLACK)          
+        screen.blit(s, (0,0))   
         # ALL CODE TO DRAW SHOULD GO ABOVE THIS COMMENT
  
         # Go ahead and update the screen with what we've drawn.
