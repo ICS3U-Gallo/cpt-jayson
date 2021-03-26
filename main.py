@@ -1,11 +1,14 @@
 '''
 todo:
+menus
+instruction 
+leaderboards
 
-power ups
-graphics
-menu screens
-timer and score
+click sound
 
+
+bugs:
+sometimes crashes at beginning of game due to event.pos not working
 '''
 
 import pygame
@@ -17,250 +20,596 @@ WHITE = (255, 255, 255)
 BLUE = (0, 0, 255)
 RED = (255, 0 ,0)
 GREEN = (0, 255, 0)
+YELLOW = (255, 255, 27)
+DARK_RED = (102, 25, 25)
+GREY = (182, 185, 165)
 
-def dist_2_points(x1, y1, x2, y2):
-    return math.sqrt((x2-x1)**2 + (y2-y1)**2)
+def mouse_in_box(rect, mouse_x, mouse_y):
+    return (mouse_x > rect[0] and mouse_x < rect[0] + rect[2] and mouse_y > rect[1] and mouse_y < rect[1] + rect[3])
 
-def detect_collision(distance, circle_r1, circle_r2):
-    return distance < circle_r1 + circle_r2
-    
-def const_slope(x1, y1, x2, y2, velocity):
-    y = abs(y2 - y1)
-    x = abs(x2 - x1)
-    ratio = (x + y) / velocity
-    return [x/ratio, y/ratio]
+size = [800, 600]
+screen = pygame.display.set_mode(size)
 
-def random_spawn(radius, size):
-    x = 0
-    y = 0
-    counter = random.randint(0, 1)
-    if counter == 0:
-        x = random.randint(-radius, size[0] + radius)
-        counter = random.randint(0, 1)
-        if counter == 0:
-            y = -radius
-        else:
-            y = radius + size[1]
-    else:
-        y = random.randint(-radius, size[1] + radius)
-        counter = random.randint(0, 1)
-        if counter == 0:
-            x = -radius
-        else:
-            x = radius + size[0]
-
-    return [x, y]
+pygame.init()
+pygame.display.set_caption("My Game")
 
 
+def game():
+   
+    def dist_2_points(x1, y1, x2, y2):
+        return math.sqrt((x2-x1)**2 + (y2-y1)**2)
 
-class Enemy:
-    def __init__(self, hp, velocity, x, y, radius):
-        self.hp = hp
-        self.velocity = velocity
-        self.x = x
-        self.y = y
-        self.alive = True
-        self.radius = radius
-
-    
-    def towards_player(self, player_x, player_y):
-        if self.x < player_x:
-            self.x += self.velocity
-        if self.x > player_x:
-            self.x -= self.velocity
-        if self.y < player_y:
-            self.y += self.velocity
-        if self.y > player_y:
-            self.y -= self.velocity
+    def detect_collision(distance, circle_r1, circle_r2):
+        return distance < circle_r1 + circle_r2
         
+    def const_slope(x1, y1, x2, y2, velocity):
+        y = abs(y2 - y1)
+        x = abs(x2 - x1)
+        ratio = (x + y) / velocity
+        return [x/ratio, y/ratio]
 
-    def on_hit(self, damage):
-        self.hp -= damage
-        if self.hp <= 0:
-            self.alive = False
+    def random_spawn(radius, size):
+        x = 0
+        y = 0
+        counter = random.randint(0, 1)
+        if counter == 0:
+            x = random.randint(-radius, size[0] + radius)
+            counter = random.randint(0, 1)
+            if counter == 0:
+                y = -radius
+            else:
+                y = radius + size[1]
+        else:
+            y = random.randint(-radius, size[1] + radius)
+            counter = random.randint(0, 1)
+            if counter == 0:
+                x = -radius
+            else:
+                x = radius + size[0]
+
+        return [x, y]
+
+    def spawn_enemy(radius, multiplier):
+        if radius == 50:
+            enemy = Enemy(75 * multiplier, 0.5, 0, 0, radius, RED)
+        elif radius == 20:
+            enemy = Enemy(10 * multiplier, 1, 0, 0, radius, RED)
+        elif radius == 10:
+            enemy = Enemy(1 , 3, 0, 0, radius, RED)
+        enemy.x, enemy.y = random_spawn(enemy.radius, size)
+        return enemy
+
+    def draw_big_enemy(x, y, color):
+        pygame.draw.circle(screen, color, (x,y), big_enemy_r)
+        pygame.draw.circle(screen, DARK_RED, (x,y), big_enemy_r, 5)
+        pygame.draw.circle(screen, BLACK, (x - 20, y - 20), 5)
+        pygame.draw.circle(screen, BLACK, (x + 20, y - 20), 5)
+        pygame.draw.circle(screen, BLACK, (x , y + 20), 5)
+
+    def draw_medium_enemy(x, y, color):
+        counter = 0
+        for i in range(5):
+            pygame.draw.circle(screen, color, (x, y), medium_enemy_r - counter, 2)
+            counter += 4
+
+    def draw_small_enemy(x, y, color):
+        pygame.draw.circle(screen, color, (x, y), small_enemy_r)
+
+    def draw_powerinfo(image, sec):
+        screen.blit(image, [image_pos[index_image][1], image_pos[index][2]])
+        text = font.render(f"time left: {sec}",True,WHITE)
+        screen.blit(text, [image_pos[index_image][1], image_pos[index][2] + 80])
+
+
+    class Enemy:
+        def __init__(self, hp, velocity, x, y, radius, color):
+            self.hp = hp
+            self.velocity = velocity
+            self.x = x
+            self.y = y
+            self.alive = True
+            self.radius = radius
+            self.color = color
+
+        
+        def towards_player(self, player_x, player_y):
+            if self.x < player_x:
+                self.x += self.velocity
+            if self.x > player_x:
+                self.x -= self.velocity
+            if self.y < player_y:
+                self.y += self.velocity
+            if self.y > player_y:
+                self.y -= self.velocity
+            
+
+        def on_hit(self, damage):
+            self.hp -= damage
+            if self.hp <= 0:
+                self.alive = False
+
+    class Projectile:
+        def __init__(self, x, y, left, up, radius, slope, attack, fire_rate, speed):
+            self.x = x
+            self.y = y
+            self.left = left
+            self.up = up
+            self.radius = radius
+            self.slope = slope
+            self.attack = attack
+            self.fire_rate = fire_rate
+            self.speed = speed
+
+
+    while True:
+        frames_passed = 0
+
+        background = pygame.image.load('background.png')
+        speed_icon = pygame.image.load('icon1.png')
+        attack_icon = pygame.image.load('icon2.png')
+        fourway_icon = pygame.image.load('icon3.png')
+        mirror_icon = pygame.image.load('icon4.png')
+        hitsound = pygame.mixer.Sound("hitsound.wav")
+        hitsound2 = pygame.mixer.Sound("hitsound2.wav")
+        hitsound.set_volume(0.1)
+        hitsound2.set_volume(0.1)
+
+        font = pygame.font.SysFont('Calibri', 14, True, False)
+        menu_font = pygame.font.SysFont('Calibri', 52, True, False)
+
+        # player variables
+        alive = True
+        velocity = 1.2
+        user_x = 400
+        user_y = 300
+        user_radius = 10
+
+        # bullet variables
+        bullets = []
+        attack = 1
+        fire_rate = 8
+        bullet_radius = 2
+        bullet_speed = 10
+        shooting = False
+        faster_shot = False
+        bigger_shot = False
+        four_shot = False
+        bouncing = False
+        power_up = False
+
+        # power up variables
+        power_ups = [faster_shot, bigger_shot, four_shot, bouncing]
+        faster_shot_timer = 0
+        bigger_shot_timer = 0
+        four_shot_timer = 0
+        bouncing_shot_timer = 0
+        faster_shot_sec = 0
+        bigger_shot_sec = 0
+        four_shot_sec = 0
+        bouncing_shot_sec = 0
+        four_shooting = False
+        bounce_shooting = False
+        kills_needed_for_power_up = 7
+
+
+        # enemy variables
+        enemies_killed = 0
+        enemies = []
+        big_enemy_r = 50
+        medium_enemy_r = 20
+        small_enemy_r = 10
+        multiplier = 1
+        spawn_rate_mod = 1
+
+
+        image_pos = [[False, 10, 10], [False, 95, 10], [False, 180, 10], [False, 265, 10]]
+        index_image = 0
+
+        time_passed = 0
+
+        ending_screen = False
+        rect1 = [200, 250, 400, 100]
+        rect2 = [200, 400, 400, 100]
+
+        done = False
+        pygame.mouse.set_visible(False)
+        clock = pygame.time.Clock()
+
+        # -------- Main Program Loop -----------
+        while not done:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if ending_screen == False:
+                        shooting = True
+                    if ending_screen == True:
+                        mouse_x, mouse_y = event.pos
+                        if mouse_in_box(rect1, mouse_x, mouse_y):
+                            done = True
+
+                        elif mouse_in_box(rect2, mouse_x, mouse_y):
+                            return "menu"
+
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    if ending_screen == False:
+                        shooting = False
+
+
+            if ending_screen == True:
+                shooting = False
+                pygame.mouse.set_visible(True)
+
+
+            if shooting:
+                if frames_passed % fire_rate == 0:
+                    # there is bug with event.pos not assigning variables to mouse_x and mouse_y
+                    # causing this to explode
+                    # dont know why. Happens at the beginning and is rare
+                    try:
+                        mouse_x, mouse_y = event.pos
+                    except AttributeError:
+                        pass
+                    slope = const_slope(mouse_x, mouse_y, user_x, user_y, bullet_speed)
+                    left = True
+                    up = True
+                    if user_x < mouse_x:
+                        left = False
+                    if user_y > mouse_y:
+                        up = False
+
+                    if four_shooting == True:
+                        bullet = Projectile(user_x, user_y, left, up, bullet_radius, slope, attack, fire_rate, bullet_speed)
+                        bullets.append(bullet)
+                        bullet = Projectile(user_x, user_y, left, up, bullet_radius, [-slope[1], slope[0]], attack, fire_rate, bullet_speed)
+                        bullets.append(bullet)
+                        bullet = Projectile(user_x, user_y, left, up, bullet_radius, [slope[1], -slope[0]], attack, fire_rate, bullet_speed)
+                        bullets.append(bullet)
+                        bullet = Projectile(user_x, user_y, left, up, bullet_radius, [-slope[0], -slope[1]], attack, fire_rate, bullet_speed)
+                        bullets.append(bullet)
+                    else:
+                        bullet = Projectile(user_x, user_y, left, up, bullet_radius, slope, attack, fire_rate, bullet_speed)
+                        bullets.append(bullet)
+
+
+            #reset enemy color
+            for enemy in enemies:
+                enemy.color = RED
+
+
+            # movement
+            if ending_screen == False:
+                keys = pygame.key.get_pressed()
+                if keys[pygame.K_a]:
+                    if user_x <= 0 + user_radius:
+                        pass
+                    else:
+                        user_x -= velocity
+                if keys[pygame.K_d]:
+                    if user_x >= size[0] - user_radius:
+                        pass
+                    else:
+                        user_x += velocity
+                if keys[pygame.K_w]:
+                    if user_y <= 0 + user_radius:
+                        pass
+                    else:
+                        user_y -= velocity    
+                if keys[pygame.K_s]:
+                    if user_y >= size[1] - user_radius:
+                        pass
+                    else:
+                        user_y += velocity
+
+                    
+                # bullet updates
+                for bullet in bullets:
+                    # bullet movement
+                    if bullet.left:
+                        bullet.x -= bullet.slope[0]
+                    elif not bullet.left:
+                        bullet.x += bullet.slope[0]
+                    if bullet.up:
+                        bullet.y += bullet.slope[1]
+                    elif not bullet.up:
+                        bullet.y -= bullet.slope[1]
+
+                    if bounce_shooting == False:
+                        if bullet.x < -10 or bullet.x > size[0]:
+                            bullets.remove(bullet)
+                        elif bullet.y < -10 or bullet.y > size[1]:
+                            bullets.remove(bullet)
+                    else:
+                        if bullet.x < 0 or bullet.x > size[0]:
+                            bullet.slope[0] *= -1
+                        elif bullet.y < 0 or bullet.y > size[1]:
+                            bullet.slope[1] *= -1
+
+                    # bullet collisions
+                    for enemy in enemies:
+                        dist = dist_2_points(bullet.x, bullet.y, enemy.x, enemy.y)
+                        if detect_collision(dist, bullet.radius, enemy.radius):
+                            enemy.on_hit(attack)
+                            enemy.color = GREY
+                            i = random.randint(0,1)
+                            if i == 1:
+                                hitsound.play()
+                            else:
+                                hitsound2.play()
+                            try:
+                                bullets.remove(bullet)   
+                            except ValueError:
+                                pass
+                        
+
+                # spawning enemy 
+                if frames_passed % round(300 * spawn_rate_mod) == 0:
+                    enemies.append(spawn_enemy(big_enemy_r, multiplier))
+                elif frames_passed % round(90 * spawn_rate_mod) == 0:
+                    enemies.append(spawn_enemy(medium_enemy_r, multiplier))
+                if frames_passed % round(30 * spawn_rate_mod) == 0:
+                    enemies.append(spawn_enemy(small_enemy_r, multiplier))
+                    
+
+                # enemy update and collisions
+                for enemy in enemies:
+                    enemy.towards_player(user_x, user_y)
+                    if enemy.alive == False:
+                        enemies_killed += 1
+                        enemies.remove(enemy)
+                    dist = dist_2_points(user_x, user_y, enemy.x, enemy.y)
+                    if detect_collision(dist, enemy.radius, user_radius):
+                        alive = False
+
+
+                # power ups
+                if enemies_killed >= kills_needed_for_power_up:
+                    power_up = True
+                    kills_needed_for_power_up += 7
+                    print("enemies killed:" + str(enemies_killed))
+                    print(kills_needed_for_power_up)
+
+                if power_up == True:
+                    index = random.randint(0, 3)
+                    power_ups[index] = True
+                    power_up = False
+
+                if power_ups[0] == True:
+                    faster_shot_timer += 600
+                    faster_shot_sec += 10
+                    power_ups[0] = False
+                if faster_shot_timer > 0:
+                    fire_rate = 4
+                    faster_shot_timer -= 1
+                else:
+                    fire_rate = 8
+
+                if power_ups[1] == True:
+                    bigger_shot_timer += 600
+                    bigger_shot_sec += 10
+                    power_ups[1] = False
+                if bigger_shot_timer > 0:
+                    bullet_radius = 4
+                    attack = 3
+                    bigger_shot_timer -= 1
+                else:
+                    bullet_radius = 2
+                    attack = 1
+
+                if power_ups[2] == True:
+                    four_shot_timer += 600
+                    four_shot_sec += 10
+                    power_ups[2] = False
+                if four_shot_timer > 0:
+                    four_shooting = True
+                    four_shot_timer -= 1
+                else:
+                    four_shooting = False
+
+                if power_ups[3] == True:
+                    bouncing_shot_timer += 600
+                    bouncing_shot_sec += 10
+                    power_ups[3] = False
+                if bouncing_shot_timer > 0:
+                    bounce_shooting = True
+                    bouncing_shot_timer -= 1
+                else:
+                    bounce_shooting = False
+                
+
+                # scaling difficulty
+                if frames_passed % 60 == 0:
+                    multiplier += 0.005
+                
+                if frames_passed % 120 == 0:
+                    if time_passed > 10:
+                        if spawn_rate_mod > 0.15:
+                            spawn_rate_mod -= 0.05
+                
+                frames_passed += 1
+                if frames_passed % 60 == 0:
+                    time_passed += 1
+
+            if not alive:
+                ending_screen = True
+
+
+            # frame to time coverter
+            if faster_shot_timer > 0:
+                if faster_shot_timer % 60 == 0:
+                    faster_shot_sec -= 1
+            if bigger_shot_timer > 0:
+                if bigger_shot_timer % 60 == 0:
+                    bigger_shot_sec -= 1
+            if four_shot_timer > 0:
+                if four_shot_timer % 60 == 0:
+                    four_shot_sec -= 1
+            if bouncing_shot_timer > 0:
+                if bouncing_shot_timer % 60 == 0:
+                    bouncing_shot_sec -= 1
 
 
 
-class Projectile:
-    def __init__(self, x, y, left, up, radius, slope):
-        self.x = x
-        self.y = y
-        self.left = left
-        self.up = up
-        self.radius = radius
-        self.slope = slope
+            # GRAPHICS
+            screen.fill(WHITE)
+            screen.blit(background, [0, 0])
 
+            for bullet in bullets:
+                pygame.draw.circle(screen, YELLOW, (bullet.x, bullet.y), bullet.radius)
+
+            for enemy in enemies:
+                if enemy.radius == 50:
+                    draw_big_enemy(enemy.x, enemy.y, enemy.color)
+                elif enemy.radius == 20:
+                    draw_medium_enemy(enemy.x, enemy.y, enemy.color)          
+                else:
+                    draw_small_enemy(enemy.x, enemy.y, enemy.color)
+        
+            # draw custom cursor
+            cursor_x, cursor_y = pygame.mouse.get_pos()
+            pygame.draw.circle(screen, RED, (cursor_x, cursor_y), 6, 2)
+            pygame.draw.circle(screen, WHITE, (cursor_x, cursor_y), 2, 2)
+
+            # draw user
+            pygame.draw.circle(screen, BLACK, (user_x, user_y), user_radius)
+            pygame.draw.circle(screen, WHITE, (user_x, user_y), user_radius, 1)
+
+            # draw text on power up information
+            index_image = 0
+            if faster_shot_timer > 0:
+                draw_powerinfo(speed_icon, faster_shot_sec)
+                index_image += 1
+            if bigger_shot_timer > 0:
+                draw_powerinfo(attack_icon,  bigger_shot_sec)
+                index_image += 1
+            if four_shot_timer > 0:
+                draw_powerinfo(fourway_icon, four_shot_sec)
+                index_image += 1
+            if bouncing_shot_timer > 0:
+                draw_powerinfo(mirror_icon, bouncing_shot_sec)
+                index_image += 1
+
+            if ending_screen == True:
+                s = pygame.Surface((800,600)) 
+                s.set_alpha(224)               
+                s.fill(BLACK)          
+                screen.blit(s, (0,0))    
+
+                text = menu_font.render("You lost", True, WHITE)
+                screen.blit(text, [310, 50])
+                text = menu_font.render(f"score: {enemies_killed}", True, WHITE)
+                screen.blit(text, [200, 130])
+                text = menu_font.render(f"time survived: {time_passed}", True, WHITE)
+                screen.blit(text, [200, 180])
+
+                pygame.draw.rect(screen, GREY, rect1)
+                pygame.draw.rect(screen, BLACK, rect1, 1)
+
+                pygame.draw.rect(screen, GREY, rect2)
+                pygame.draw.rect(screen, BLACK, rect2, 1)
+
+                text = menu_font.render("Play again", True, BLACK)
+                screen.blit(text, [rect1[0] + 95, rect1[1] + 35])
+
+                text = menu_font.render("Back to menu", True, BLACK)
+                screen.blit(text, [rect2[0] + 60, rect2[1] + 35])
+
+
+            pygame.display.flip()
+    
+
+            clock.tick(60)
+        
+def menu():
+    rect1 = [200, 250, 400, 100]
+    rect2 = [200, 400, 400, 100]
+    rect3 = [690, 10, 100, 100]
+    clock = pygame.time.Clock()
+    done = False
+    while not done:
+        # ALL EVENT PROCESSING SHOULD GO BELOW THIS COMMENT
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return "quit"
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_x, mouse_y = event.pos
+                if mouse_in_box(rect1, mouse_x, mouse_y):
+                    return "game"
+                elif mouse_in_box(rect2, mouse_x, mouse_y):
+                    return "instruction"
+                elif mouse_in_box(rect3, mouse_x, mouse_y):
+                    return "quit"
+        # ALL EVENT PROCESSING SHOULD GO ABOVE THIS COMMENT
+ 
+        # ALL GAME LOGIC SHOULD GO BELOW THIS COMMENT
+ 
+        # ALL GAME LOGIC SHOULD GO ABOVE THIS COMMENT
+ 
+        # ALL CODE TO DRAW SHOULD GO BELOW THIS COMMENT
+ 
+        # First, clear the screen to white. Don't put other drawing commands
+        # above this, or they will be erased with this command.
+        screen.fill(BLACK)
+        pygame.draw.rect(screen, GREY, rect1)
+        pygame.draw.rect(screen, GREY, rect2)
+        pygame.draw.rect(screen, GREY, rect3)
+        # ALL CODE TO DRAW SHOULD GO ABOVE THIS COMMENT
+ 
+        # Go ahead and update the screen with what we've drawn.
+        pygame.display.flip()
+        clock.tick(60)
+
+def instruction():
+    rect1 = [200, 250, 400, 100]
+    rect2 = [200, 400, 400, 100]
+    clock = pygame.time.Clock()
+    done = False
+    while not done:
+        # ALL EVENT PROCESSING SHOULD GO BELOW THIS COMMENT
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return "quit"
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_x, mouse_y = event.pos
+                if mouse_in_box(rect1, mouse_x, mouse_y):
+                    return "menu"
+                elif mouse_in_box(rect2, mouse_x, mouse_y):
+                    pass
+        # ALL EVENT PROCESSING SHOULD GO ABOVE THIS COMMENT
+ 
+        # ALL GAME LOGIC SHOULD GO BELOW THIS COMMENT
+ 
+        # ALL GAME LOGIC SHOULD GO ABOVE THIS COMMENT
+ 
+        # ALL CODE TO DRAW SHOULD GO BELOW THIS COMMENT
+ 
+        # First, clear the screen to white. Don't put other drawing commands
+        # above this, or they will be erased with this command.
+        screen.fill(BLACK)
+        pygame.draw.rect(screen, WHITE, rect1)
+        pygame.draw.rect(screen, WHITE, rect2)
+        # ALL CODE TO DRAW SHOULD GO ABOVE THIS COMMENT
+ 
+        # Go ahead and update the screen with what we've drawn.
+        pygame.display.flip()
+        clock.tick(60)
 
 
 def main():
-    pygame.init()
- 
-    size = [700, 500]
-    screen = pygame.display.set_mode(size)
- 
-    pygame.display.set_caption("My Game")
-
-
     game_state = "menu"
-    frames_passed = 0
+    while True:
+        if game_state == "menu":
+            game_state = menu()
 
-    # player variables
-    alive = True
-    velocity = 1.2
-    user_x = 350
-    user_y = 250
-    user_radius = 10
+        if game_state == "game":
+            game_state = game()
 
-    attack = 1
-    piercing = False
-    bullets = []
-    bullet_radius = 1
-    bullet_speed = 10
+        if game_state == "instruction":
+            game_state = instruction()
 
-    enemies_killed = 0
-
-    enemies = []
-    big_enemy_r = 50
-    medium_enemy_r = 20
-    small_enemy_r = 10
-
-    score = 0
-    time_passed = 0
-
-    done = False
-    pygame.mouse.set_visible(False)
-    clock = pygame.time.Clock()
-
-
-    # -------- Main Program Loop -----------
-    while not done:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                done = True
-
-            # shooting
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_x, mouse_y = event.pos
-                slope = const_slope(mouse_x, mouse_y, user_x, user_y, bullet_speed)
-                left = True
-                up = True
-                if user_x < mouse_x:
-                    left = False
-                if user_y > mouse_y:
-                    up = False
-                bullet = Projectile(user_x, user_y, left, up, bullet_radius, slope)
-                bullets.append(bullet)
-
-
-        # movement
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_a]:
-            user_x -= velocity
-        if keys[pygame.K_d]:
-            user_x += velocity
-        if keys[pygame.K_w]:
-            user_y -= velocity    
-        if keys[pygame.K_s]:
-            user_y += velocity
-
-
-        # bullet update
-
-        # bullet movement
-        for bullet in bullets:
-            if bullet.left:
-                bullet.x -= bullet.slope[0]
-            elif not bullet.left:
-                bullet.x += bullet.slope[0]
-            if bullet.up:
-                bullet.y += bullet.slope[1]
-            elif not bullet.up:
-                bullet.y -= bullet.slope[1]
-            
-        # collision detection
-        for bullet in bullets:
-            for enemy in enemies:
-                dist = dist_2_points(bullet.x, bullet.y, enemy.x, enemy.y)
-                if detect_collision(dist, bullet.radius, enemy.radius):
-                    enemy.on_hit(attack)
-                    try:
-                        bullets.remove(bullet)   
-                    except ValueError:
-                        pass
-                    if not enemy.alive:
-                        enemies.remove(enemy)
-                        enemies_killed += 1
-                
-
-
-        
-
-        # spawning enemy 
-
-        if frames_passed % 300 == 0:
-            enemy_x, enemy_y = random_spawn(big_enemy_r, size)
-            big_enemy = Enemy(10, 0.5, enemy_x, enemy_y, big_enemy_r)
-            enemies.append(big_enemy)
-        elif frames_passed % 180 == 0:
-            enemy_x, enemy_y = random_spawn(medium_enemy_r, size)
-            medium_enemy = Enemy(3, 1, enemy_x, enemy_y, medium_enemy_r)
-            enemies.append(medium_enemy)
-        elif frames_passed % 60 == 0:
-            enemy_x, enemy_y = random_spawn(small_enemy_r, size) 
-            small_enemy = Enemy(1, 3, enemy_x, enemy_y, small_enemy_r)
-            enemies.append(small_enemy)
-
-
-
-        # moving enemies
-
-        if len(enemies) >= 1:
-            for enemy in enemies:
-                enemy.towards_player(user_x, user_y)
-            
-        # enemy collsion
-        for enemy in enemies:
-            dist = dist_2_points(user_x, user_y, enemy.x, enemy.y)
-            if detect_collision(dist, enemy.radius, user_radius):
-                alive = False
-
-
-        if not alive:
-            done = True
-
-
-
-
-        screen.fill(WHITE)
-
-
-        # PLACEHOLDER GRAPHICS
-
-        for bullet in bullets:
-            pygame.draw.circle(screen, RED, (bullet.x, bullet.y), bullet.radius)
-        
-        
-        if len(enemies) >= 1:
-            for enemy in enemies:
-                pygame.draw.circle(screen, RED, (enemy.x, enemy.y), enemy.radius)
-        
-
-        cursor_x, cursor_y = pygame.mouse.get_pos()
-        pygame.draw.circle(screen, BLACK, (cursor_x, cursor_y), 2, 1)
-
-        
-        pygame.draw.circle(screen, BLACK, (user_x, user_y), user_radius)
-        
-        frames_passed += 1
-        if frames_passed % 60 == 0:
-            time_passed += 1
-
-        pygame.display.flip()
- 
-
-
-
-        clock.tick(60)
+        if game_state == "quit":
+            break
 
 
     pygame.quit()
