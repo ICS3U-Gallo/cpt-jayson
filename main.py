@@ -1,12 +1,10 @@
 '''
 todo:
-menus
-instruction 
-leaderboards
-balancing
+leaderboards (maybe)
+balancing (dont know how)
 
 bugs:
-sometimes crashes at beginning of game due to event.pos not working
+sometimes crashes at beginning of game due to event.pos not working (very rare)
 '''
 
 import pygame
@@ -15,9 +13,7 @@ import random
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
-BLUE = (0, 0, 255)
 RED = (255, 0 ,0)
-GREEN = (0, 255, 0)
 YELLOW = (255, 255, 27)
 DARK_RED = (102, 25, 25)
 GREY = (182, 185, 165)
@@ -528,7 +524,7 @@ def menu():
     rect2 = [200, 400, 400, 100]
     rect3 = [740, 10, 50, 50]
 
-    text_x = 180
+    text_x = 178
     text_y = 100
 
     r = 255
@@ -585,7 +581,7 @@ def menu():
         pygame.draw.rect(screen, GREY, rect3)
 
         text = menu_font.render("Play", True, BLACK)
-        screen.blit(text, [rect1[0] + 145, rect1[1] + 35])
+        screen.blit(text, [rect1[0] + 157, rect1[1] + 35])
         text = menu_font.render("Instructions", True, BLACK)
         screen.blit(text, [rect2[0] + 80, rect2[1] + 35])
 
@@ -598,8 +594,8 @@ def menu():
         clock.tick(60)
 
 def instruction():
-    rect1 = [200, 250, 400, 100]
-    rect2 = [200, 400, 400, 100]
+    rect1 = [200, 400, 400, 100]
+    instruction = pygame.image.load('assets/instructions.png')
     clock = pygame.time.Clock()
     done = False
     while not done:
@@ -612,8 +608,6 @@ def instruction():
                 if mouse_in_box(rect1, mouse_x, mouse_y):
                     click.play()
                     return "menu"
-                elif mouse_in_box(rect2, mouse_x, mouse_y):
-                    click.play()
         # ALL EVENT PROCESSING SHOULD GO ABOVE THIS COMMENT
  
         # ALL GAME LOGIC SHOULD GO BELOW THIS COMMENT
@@ -629,7 +623,11 @@ def instruction():
         s = pygame.Surface((800,600)) 
         s.set_alpha(224)               
         s.fill(BLACK)          
-        screen.blit(s, (0,0))   
+        screen.blit(s, (0,0))
+        screen.blit(instruction, [0,0])   
+        pygame.draw.rect(screen, GREY, rect1)
+        text = menu_font.render("Back to Menu", True, BLACK)
+        screen.blit(text, [rect1[0] + 60, rect1[1] + 35])
         # ALL CODE TO DRAW SHOULD GO ABOVE THIS COMMENT
  
         # Go ahead and update the screen with what we've drawn.
@@ -643,13 +641,13 @@ def main():
         if game_state == "menu":
             game_state = menu()
 
-        if game_state == "game":
+        elif game_state == "game":
             game_state = game()
 
-        if game_state == "instruction":
+        elif game_state == "instruction":
             game_state = instruction()
 
-        if game_state == "quit":
+        elif game_state == "quit":
             break
 
 
