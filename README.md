@@ -1,8 +1,9 @@
 # ICS3U - Computer Science CPT
 
-### Game Title
-Describe your game here.
-Arcade game
+### Dungeon survivor
+This is an endless arcade game where your goal is to survive as long as possible. Use WASD to move your character and your mouse to aim and shoot. The enemies will try to come in contact with you and once they do, you lose. You can get a powerup by killing 7 enemies. As time goes on in the game, the game gets harder (enemy hp and spawn rate goes up). 
+
+Survive as long as possible and aim to get a new highscore
 
 ### Group members:
 - Jayson Lai
