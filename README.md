@@ -6,7 +6,7 @@ This is an endless arcade game where your goal is to survive as long as possible
 Survive as long as possible and aim to get a new highscore
 
 
-(you need the asset folder in the same directory as main.py to run the game)
+(you need the assets folder in the same directory as main.py to run the game)
 
 ### Group members:
 - Jayson Lai
