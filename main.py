@@ -1,12 +1,3 @@
-'''
-todo:
-leaderboards (maybe)
-balancing (dont know how)
-
-bugs:
-sometimes crashes at beginning of game due to event.pos not working (very rare)
-'''
-
 import pygame
 import math
 import random
@@ -21,6 +12,12 @@ GREY = (182, 185, 165)
 def mouse_in_box(rect, mouse_x, mouse_y):
     return (mouse_x > rect[0] and mouse_x < rect[0] + rect[2] and mouse_y > rect[1] and mouse_y < rect[1] + rect[3])
 
+def opaque_background():
+    screen.blit(background, [0,0])
+    s = pygame.Surface((800,600)) 
+    s.set_alpha(224)               
+    s.fill(BLACK)          
+    screen.blit(s, (0,0))   
 
 size = [800, 600]
 screen = pygame.display.set_mode(size)
@@ -200,8 +197,13 @@ def game():
         spawn_rate_mod = 1
 
 
+        new_kills = False
+        new_time = False
+
         image_pos = [[False, 10, 10], [False, 95, 10], [False, 180, 10], [False, 265, 10]]
         index_image = 0
+
+        last_pos = [0,0]
 
         time_passed = 0
 
@@ -237,20 +239,9 @@ def game():
                         shooting = False
 
 
-            if ending_screen == True:
-                shooting = False
-                pygame.mouse.set_visible(True)
-
-
             if shooting:
+                mouse_x, mouse_y = pygame.mouse.get_pos()
                 if frames_passed % fire_rate == 0:
-                    # there is bug with event.pos not assigning variables to mouse_x and mouse_y
-                    # causing this to explode
-                    # dont know why. Happens at the beginning and is rare
-                    try:
-                        mouse_x, mouse_y = event.pos
-                    except AttributeError:
-                        pass
                     slope = const_slope(mouse_x, mouse_y, user_x, user_y, bullet_speed)
                     left = True
                     up = True
@@ -431,7 +422,23 @@ def game():
 
             if not alive:
                 ending_screen = True
+                pygame.mouse.set_visible(True)
 
+                file = open('assets/leaderboards.txt', 'r')
+                lines = file.readlines()
+
+                if int(lines[0].rstrip()) < enemies_killed:
+                    lines[0] = str(enemies_killed) + "\n"
+                    new_kills = True
+                if int(lines[1].rstrip()) < time_passed:
+                    lines[1] = str(time_passed)
+                    new_time = True
+
+                file = open('assets/leaderboards.txt', 'w')
+                file.writelines(lines)
+                file.close()
+
+            
 
             # frame to time coverter
             if faster_shot_timer > 0:
@@ -494,11 +501,18 @@ def game():
                 s.fill(BLACK)          
                 screen.blit(s, (0,0))    
 
-                text = menu_font.render("You lost", True, WHITE)
+                text = menu_font.render("You Lost", True, WHITE)
                 screen.blit(text, [310, 50])
-                text = menu_font.render(f"score: {enemies_killed}", True, WHITE)
+                if new_kills:
+                    text = font.render(f"NEW", True, YELLOW)
+                    screen.blit(text, [170, 130])
+                text = menu_font.render(f"Enemies killed: {enemies_killed}", True, WHITE)
                 screen.blit(text, [200, 130])
-                text = menu_font.render(f"time survived: {time_passed}", True, WHITE)
+
+                if new_time:
+                    text = font.render(f"NEW", True, YELLOW)
+                    screen.blit(text, [170, 180])
+                text = menu_font.render(f"Time survived: {time_passed}", True, WHITE)
                 screen.blit(text, [200, 180])
 
                 pygame.draw.rect(screen, GREY, rect1)
@@ -523,6 +537,9 @@ def menu():
     rect1 = [200, 250, 400, 100]
     rect2 = [200, 400, 400, 100]
     rect3 = [740, 10, 50, 50]
+    rect4 = [10, 540, 100, 50]
+
+    rects = [rect1, rect2, rect3, rect4]
 
     text_x = 178
     text_y = 100
@@ -535,7 +552,6 @@ def menu():
     clock = pygame.time.Clock()
     done = False
     while not done:
-        # ALL EVENT PROCESSING SHOULD GO BELOW THIS COMMENT
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return "quit"
@@ -549,9 +565,11 @@ def menu():
                     return "instruction"
                 elif mouse_in_box(rect3, mouse_x, mouse_y):
                     return "quit"
-        # ALL EVENT PROCESSING SHOULD GO ABOVE THIS COMMENT
- 
-        # ALL GAME LOGIC SHOULD GO BELOW THIS COMMENT
+                elif mouse_in_box(rect4, mouse_x, mouse_y):
+                    click.play()
+                    return "leaderboards"
+
+
         r -= offset
         g -= offset
         b -= offset
@@ -560,36 +578,28 @@ def menu():
         if r <= 254:
             offset *= -1
 
-        # ALL GAME LOGIC SHOULD GO ABOVE THIS COMMENT
- 
-        # ALL CODE TO DRAW SHOULD GO BELOW THIS COMMENT
- 
-        # First, clear the screen to white. Don't put other drawing commands
-        # above this, or they will be erased with this command.
+  
         screen.fill(BLACK)
-        screen.blit(background, [0,0])
-        s = pygame.Surface((800,600)) 
-        s.set_alpha(224)               
-        s.fill(BLACK)          
-        screen.blit(s, (0,0))   
+        opaque_background()
 
         text = title_font.render("Dungeon Survivor", True, (r, g, b))
         screen.blit(text, [text_x, text_y])
 
-        pygame.draw.rect(screen, GREY, rect1)
-        pygame.draw.rect(screen, GREY, rect2)
-        pygame.draw.rect(screen, GREY, rect3)
+
+        for rect in rects:
+            pygame.draw.rect(screen, GREY, rect)
+
 
         text = menu_font.render("Play", True, BLACK)
         screen.blit(text, [rect1[0] + 157, rect1[1] + 35])
         text = menu_font.render("Instructions", True, BLACK)
         screen.blit(text, [rect2[0] + 80, rect2[1] + 35])
+        text = font.render("leaderboards", True, BLACK)
+        screen.blit(text, [rect4[0] + 10, rect4[1] + 18])
 
         pygame.draw.line(screen, RED, (rect3[0] + 10 , rect3[1] + 40), (rect3[0] + 40, rect3[1] + 10), 10)   
         pygame.draw.line(screen, RED, (rect3[0] + 40, rect3[1] + 40), (rect3[0] + 10 , rect3[1] + 10), 10)
-        # ALL CODE TO DRAW SHOULD GO ABOVE THIS COMMENT
- 
-        # Go ahead and update the screen with what we've drawn.
+  
         pygame.display.flip()
         clock.tick(60)
 
@@ -599,7 +609,7 @@ def instruction():
     clock = pygame.time.Clock()
     done = False
     while not done:
-        # ALL EVENT PROCESSING SHOULD GO BELOW THIS COMMENT
+       
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return "quit"
@@ -608,32 +618,63 @@ def instruction():
                 if mouse_in_box(rect1, mouse_x, mouse_y):
                     click.play()
                     return "menu"
-        # ALL EVENT PROCESSING SHOULD GO ABOVE THIS COMMENT
- 
-        # ALL GAME LOGIC SHOULD GO BELOW THIS COMMENT
- 
-        # ALL GAME LOGIC SHOULD GO ABOVE THIS COMMENT
- 
-        # ALL CODE TO DRAW SHOULD GO BELOW THIS COMMENT
- 
-        # First, clear the screen to white. Don't put other drawing commands
-        # above this, or they will be erased with this command.
+   
         screen.fill(BLACK)
-        screen.blit(background, [0,0])
-        s = pygame.Surface((800,600)) 
-        s.set_alpha(224)               
-        s.fill(BLACK)          
-        screen.blit(s, (0,0))
+        opaque_background()
+
+
         screen.blit(instruction, [0,0])   
+
         pygame.draw.rect(screen, GREY, rect1)
         text = menu_font.render("Back to Menu", True, BLACK)
         screen.blit(text, [rect1[0] + 60, rect1[1] + 35])
-        # ALL CODE TO DRAW SHOULD GO ABOVE THIS COMMENT
- 
-        # Go ahead and update the screen with what we've drawn.
+       
         pygame.display.flip()
         clock.tick(60)
 
+def leaderboards():
+    rect1 = [200, 400, 400, 100]
+    instruction = pygame.image.load('assets/instructions.png')
+    file = open('assets/leaderboards.txt', 'r')
+    lines = file.readlines()
+    file.close()
+
+    score1 = lines[0].rstrip()
+    score2 = lines[1].rstrip()
+
+
+    trophy = pygame.image.load('assets/trophy.png')
+    clock = pygame.time.Clock()
+    done = False
+    while not done:
+       
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return "quit"
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_x, mouse_y = event.pos
+                if mouse_in_box(rect1, mouse_x, mouse_y):
+                    click.play()
+                    return "menu"
+   
+
+        screen.fill(BLACK)
+        opaque_background()
+       
+        screen.blit(trophy, (100, 100))
+
+        text = menu_font.render(f"Enemies killed: {score1}", True, WHITE)
+        screen.blit(text, [300, 140])
+
+        text = menu_font.render(f"Time survived: {score2}", True, WHITE)
+        screen.blit(text, [300, 210])
+
+        pygame.draw.rect(screen, GREY, rect1)
+        text = menu_font.render("Back to Menu", True, BLACK)
+        screen.blit(text, [rect1[0] + 60, rect1[1] + 35])
+       
+        pygame.display.flip()
+        clock.tick(60)
 
 def main():
     game_state = "menu"
@@ -646,6 +687,9 @@ def main():
 
         elif game_state == "instruction":
             game_state = instruction()
+
+        elif game_state == "leaderboards":
+            game_state = leaderboards()
 
         elif game_state == "quit":
             break
