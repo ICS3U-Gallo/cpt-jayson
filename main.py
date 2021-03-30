@@ -328,6 +328,8 @@ def game():
                                 hitsound.play()
                             else:
                                 hitsound2.play()
+                            # if a bullet hits two enemies at the same time, it will remove the bullet twice
+                            # this prevents the game from giving an error
                             try:
                                 bullets.remove(bullet)   
                             except ValueError:
@@ -359,52 +361,51 @@ def game():
                     power_up = True
                     kills_needed_for_power_up += 7
 
-                if power_up == True:
                     index = random.randint(0, 3)
                     power_ups[index] = True
                     power_up = False
 
-                if power_ups[0] == True:
-                    faster_shot_timer += 600
-                    faster_shot_sec += 10
-                    power_ups[0] = False
-                if faster_shot_timer > 0:
-                    fire_rate = 4
-                    faster_shot_timer -= 1
-                else:
-                    fire_rate = 8
+                    if power_ups[0] == True:
+                        faster_shot_timer += 600
+                        faster_shot_sec += 10
+                        power_ups[0] = False
+                    if faster_shot_timer > 0:
+                        fire_rate = 4
+                        faster_shot_timer -= 1
+                    else:
+                        fire_rate = 8
 
-                if power_ups[1] == True:
-                    bigger_shot_timer += 600
-                    bigger_shot_sec += 10
-                    power_ups[1] = False
-                if bigger_shot_timer > 0:
-                    bullet_radius = 4
-                    attack = 3
-                    bigger_shot_timer -= 1
-                else:
-                    bullet_radius = 2
-                    attack = 1
+                    if power_ups[1] == True:
+                        bigger_shot_timer += 600
+                        bigger_shot_sec += 10
+                        power_ups[1] = False
+                    if bigger_shot_timer > 0:
+                        bullet_radius = 4
+                        attack = 3
+                        bigger_shot_timer -= 1
+                    else:
+                        bullet_radius = 2
+                        attack = 1
 
-                if power_ups[2] == True:
-                    four_shot_timer += 600
-                    four_shot_sec += 10
-                    power_ups[2] = False
-                if four_shot_timer > 0:
-                    four_shooting = True
-                    four_shot_timer -= 1
-                else:
-                    four_shooting = False
+                    if power_ups[2] == True:
+                        four_shot_timer += 600
+                        four_shot_sec += 10
+                        power_ups[2] = False
+                    if four_shot_timer > 0:
+                        four_shooting = True
+                        four_shot_timer -= 1
+                    else:
+                        four_shooting = False
 
-                if power_ups[3] == True:
-                    bouncing_shot_timer += 600
-                    bouncing_shot_sec += 10
-                    power_ups[3] = False
-                if bouncing_shot_timer > 0:
-                    bounce_shooting = True
-                    bouncing_shot_timer -= 1
-                else:
-                    bounce_shooting = False
+                    if power_ups[3] == True:
+                        bouncing_shot_timer += 600
+                        bouncing_shot_sec += 10
+                        power_ups[3] = False
+                    if bouncing_shot_timer > 0:
+                        bounce_shooting = True
+                        bouncing_shot_timer -= 1
+                    else:
+                        bounce_shooting = False
                 
 
                 # scaling difficulty
@@ -419,6 +420,7 @@ def game():
                 frames_passed += 1
                 if frames_passed % 60 == 0:
                     time_passed += 1
+
 
             if not alive:
                 ending_screen = True
@@ -438,7 +440,6 @@ def game():
                 file.writelines(lines)
                 file.close()
 
-            
 
             # frame to time coverter
             if faster_shot_timer > 0:
@@ -697,5 +698,6 @@ def main():
 
     pygame.quit()
  
+
 if __name__ == "__main__":
     main()
